@@ -1,40 +1,19 @@
 import streamlit as st
-from services.pipeline_client import parse_resume_api, generate_questions_api
+from ui import components as c
+from core.pipeline_client import parse_resume_api, generate_questions_api
 
 
 def render_app():
-    st.title("🧠 Interview Docket Generator")
-    st.caption("AI-assisted. Human-controlled. No automation.")
+    c.header()
 
     st.sidebar.title("📌 Inputs")
-
-    resume_file = st.sidebar.file_uploader(
-        "Upload Resume (PDF/DOCX)",
-        type=["pdf", "docx"]
-    )
-
-    jd_text = st.sidebar.text_area(
-        "Paste Job Description (JD)",
-        placeholder="Paste the full JD here...",
-        height=200
-    )
-
-    interview_stage = st.sidebar.selectbox(
-        "Interview Stage",
-        ["Screening", "Technical", "System Design", "Final"]
-    )
+    resume_file = c.upload_resume()
+    jd_text = c.upload_jd()
+    interview_stage = c.stage_selector()
 
     st.sidebar.info("AI suggests questions. Interviewer stays in control.")
 
-    # Session state init
-    if "resume_json" not in st.session_state:
-        st.session_state.resume_json = None
-
-    if "questions" not in st.session_state:
-        st.session_state.questions = None
-
-    # Manual trigger (nothing happens automatically)
-    if st.button("🚀 Generate Questions"):
+    if c.generate_button():
         if not resume_file:
             st.error("Please upload a resume file.")
             return
@@ -52,12 +31,8 @@ def render_app():
 
         st.session_state.resume_json = resume_json
 
-        with st.spinner("Generating questions (Resume + JD)..."):
-            questions = generate_questions_api(
-                resume_json=resume_json,
-                jd_text=jd_text,
-                interview_stage=interview_stage
-            )
+        with st.spinner("Generating questions..."):
+            questions = generate_questions_api(resume_json, jd_text, interview_stage)
 
         if questions is None:
             st.error("Question generation failed.")
@@ -66,21 +41,11 @@ def render_app():
         st.session_state.questions = questions
         st.success("Questions generated successfully!")
 
-    # Output rendering
+    # Display outputs
     if st.session_state.resume_json:
-        st.subheader("📄 Parsed Resume (Structured JSON)")
-        st.json(st.session_state.resume_json)
+        c.show_resume_json(st.session_state.resume_json)
 
     if st.session_state.questions:
-        st.subheader("🤖 Suggested Questions")
-        for i, q in enumerate(st.session_state.questions):
-            with st.container():
-                st.markdown(f"**Claim:** {q.get('claim', '')}")
-                st.markdown(f"**Question:** {q.get('question', '')}")
-                st.caption(f"Why this question? → {q.get('reason', '')}")
-                st.divider()
+        c.show_questions(st.session_state.questions)
 
-    st.info(
-        "⚠️ Ethical Boundary: This tool does NOT evaluate candidates. "
-        "It only helps interviewers ask better questions faster."
-    )
+    c.ethics_banner()
