@@ -1,0 +1,124 @@
+{
+  "resume_id": "test1",
+  "metadata": {
+    "parsed_at": "2026-01-16T19:05:41.081054",
+    "parser_version": "latex-template-v1"
+  },
+  "education": [],
+  "skills": {
+    "languages": [
+      "C",
+      "C++",
+      "Python",
+      "Java",
+      "JavaScript",
+      "Kotlin",
+      "ECL",
+      "Solidity"
+    ],
+    "frameworks": [
+      "ReactJS",
+      "NodeJS",
+      "Android",
+      "Git",
+      "Ethereum",
+      "HyperLedger",
+      "Tensorflow-Keras"
+    ],
+    "tools": []
+  },
+  "experience": [
+    {
+      "role": "Technical Intern",
+      "company": "Dimension64",
+      "duration": "dec 2022 - present",
+      "claims": [
+        "Developed a MERN application to demonstrate Supply Chain Optimization by leveraging Blockchain.",
+        "",
+        "Used web3.js to integrate the application to the Ethereum chain.",
+        "",
+        "Developed efficient scripts to fetch real time data from the blockchain and serve the data to",
+        "",
+        "schedulers.",
+        "Optimized code to reduce time needed for interactions with the blockchain.",
+        "",
+        "Developing applications on the HyperLedger Fabric.",
+        ""
+      ],
+      "tools": [
+        "MERN",
+        "Web3.js",
+        "Hyperledger",
+        "Docker Bangalore",
+        "India"
+      ]
+    },
+    {
+      "role": "Intern",
+      "company": "Bharat Heavy Electronics Limited (Bhel)",
+      "duration": "april 2023 - june 2023",
+      "claims": [
+        "Developed an inventory management system to help keep track of components dispatched by BHEL.",
+        "",
+        "Implemented database wide search and modification features.",
+        ""
+      ],
+      "tools": [
+        "React.js",
+        "Express.js",
+        "PostgreSQL Bangalore",
+        "India"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Unspoken - Online meets for the specially abled",
+      "claims": [
+        "An online meet application integrated with AI to facilitate online meets between deaf and dumb",
+        "",
+        "people without the need for translators.",
+        "Implemented real time audio and video communication by using WebRTC and Socket.IO",
+        "",
+        "Employed key-frame detection and LSTM to develop a machine learning model that can detect Indian Sign",
+        "",
+        "Language gestures in real time from video frames and translate gestures to English keywords and",
+        "sentences."
+      ],
+      "tools": [
+        "WebRTC",
+        "Tensorflow",
+        "HTML",
+        "CSS",
+        "JavaScript"
+      ]
+    },
+    {
+      "name": "Smart Outlet Panel",
+      "claims": [
+        "An android application that controls power outlet panels by sending messages to Raspberry Pi and Arduino via",
+        "",
+        "FireBase. The app also provides realtime usage statistics for each power socket."
+      ],
+      "tools": [
+        "Android",
+        "Kotlin",
+        "FireBase"
+      ]
+    },
+    {
+      "name": "State Table Reducer",
+      "claims": [
+        "A React application to generate implication tables and reduce state tables, thus optimizing circuits.",
+        "",
+        "A user can enter the state table of any Mealy machine and the application will reduce states and print the",
+        "",
+        "reduced state table."
+      ],
+      "tools": [
+        "React JS",
+        "Next JS"
+      ]
+    }
+  ]
+}
