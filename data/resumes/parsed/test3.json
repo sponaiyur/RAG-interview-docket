@@ -1,0 +1,60 @@
+{
+  "resume_id": "test3",
+  "metadata": {
+    "parsed_at": "2026-01-17T19:38:52.122959",
+    "parser_version": "latex-template-v1"
+  },
+  "education": [],
+  "skills": {
+    "languages": [],
+    "frameworks": [],
+    "tools": [
+      "C",
+      "Java",
+      "SDLC",
+      "Software Development",
+      "Linux",
+      "C#",
+      "Communication Skills"
+    ]
+  },
+  "experience": [
+    {
+      "role": "Software Engineer",
+      "company": "Researched and created a new application increasing sales by 1.3x",
+      "duration": "May 2018",
+      "claims": [
+        "Created a development framework to improve delivery speed",
+        "Improved testing and reporting processes by 10%",
+        "Reduced crash resolution time by 20%",
+        "Mezzanine"
+      ],
+      "tools": []
+    },
+    {
+      "role": "Web Developer",
+      "company": "Developed collaborative tools for team members",
+      "duration": "Oct 2016",
+      "claims": [
+        "Designed a web application increasing quarterly revenue",
+        "Delivered a CRM system in two weeks",
+        "Maintained professional digital presence",
+        "Used Adobe InDesign for branding and layout",
+        "Geeks 4 Nerds"
+      ],
+      "tools": []
+    },
+    {
+      "role": "Software Engineer",
+      "company": "Designed a cloud-based POS platform",
+      "duration": "",
+      "claims": [
+        "Improved customer retention significantly",
+        "Worked closely with hardware and software teams",
+        "Maintained internal development documentation"
+      ],
+      "tools": []
+    }
+  ],
+  "projects": []
+}

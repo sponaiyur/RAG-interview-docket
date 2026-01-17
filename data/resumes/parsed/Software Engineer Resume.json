@@ -1,0 +1,72 @@
+{
+  "resume_id": "Software Engineer Resume",
+  "metadata": {
+    "parsed_at": "2026-01-17T19:25:34.116294",
+    "parser_version": "latex-template-v1"
+  },
+  "education": [],
+  "skills": {
+    "languages": [],
+    "frameworks": [],
+    "tools": [
+      "C",
+      "Java",
+      "Sdlc",
+      "Software Development",
+      "Linux",
+      "C#",
+      "Communication Skills"
+    ]
+  },
+  "experience": [
+    {
+      "role": "Software Engineer",
+      "company": "BlueTech Software \u2022 Los Angeles, California",
+      "duration": "07/2019 - Present",
+      "claims": [
+        "Created a new software development framework to develop applications faster and more efficiently",
+        "Developed the process of testing and recording the results of the test, thereby increasing the number of tests",
+        "completed per day by 10%",
+        "Developed a new technique for reducing the time it takes to fix crashes by 20%"
+      ],
+      "tools": [
+        "Researched and created a new application to be used by the company",
+        "resulting in a 1.3x increase in sales"
+      ]
+    },
+    {
+      "role": "Web Developer",
+      "company": "Mezzanine \u2022 Los Angeles, California",
+      "duration": "05/2018",
+      "claims": [
+        "empowerment",
+        "Designed a new web application to increase collaboration among design, engineering and sales teams, resulting in a",
+        "10% increase in revenue in one quarter",
+        "Built a custom web application for a major client, successfully delivering an integrated CRM system in just 2 weeks",
+        "Maintained a clean, professional and creative web presence for the company to convey the professional image of the",
+        "organization",
+        "Used Adobe InDesign to design, edit and layout the company's print & digital collateral"
+      ],
+      "tools": [
+        "Developed a collaborative environment for all team members",
+        "creating a strong sense of community and"
+      ]
+    },
+    {
+      "role": "Software Engineer",
+      "company": "Geeks 4 Nerds \u2022 Los Angeles, California",
+      "duration": "10/2016",
+      "claims": [
+        "retention",
+        "Collaborated with hardware and software development teams to ensure seamless integration of the new POS system",
+        "Continued to develop specialty skills related to his expertise in mobile POS and payment technologies",
+        "Developed and continuously improved an internal knowledge base of best practices for software development"
+      ],
+      "tools": [
+        "Designed and implemented a new cloud-based mobile POS platform",
+        "resulting in a 50% increase in customer"
+      ]
+    }
+  ],
+  "projects": []
+}

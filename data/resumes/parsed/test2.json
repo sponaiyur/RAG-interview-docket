@@ -1,0 +1,61 @@
+{
+  "resume_id": "test2",
+  "metadata": {
+    "parsed_at": "2026-01-17T19:39:02.323237",
+    "parser_version": "latex-template-v1"
+  },
+  "education": [],
+  "skills": {
+    "languages": [],
+    "frameworks": [],
+    "tools": [
+      "C",
+      "Java",
+      "SDLC",
+      "Software Development",
+      "Linux",
+      "C#",
+      "Communication Skills"
+    ]
+  },
+  "experience": [
+    {
+      "role": "Software Engineer",
+      "company": "BlueTech Software",
+      "duration": "07/2019 - Present",
+      "claims": [
+        "Researched and created a new application resulting in increased sales",
+        "Built faster software development frameworks",
+        "Improved testing throughput by 10%",
+        "Reduced average crash resolution time"
+      ],
+      "tools": []
+    },
+    {
+      "role": "Web Developer",
+      "company": "Mezzanine",
+      "duration": "05/2018",
+      "claims": [
+        "Developed collaborative internal tools",
+        "Designed revenue-generating web applications",
+        "Built a CRM system for enterprise client",
+        "Maintained company web presence",
+        "Used Adobe InDesign for design and layout"
+      ],
+      "tools": []
+    },
+    {
+      "role": "Software Engineer",
+      "company": "Geeks 4 Nerds",
+      "duration": "10/2016",
+      "claims": [
+        "Designed and implemented cloud-based POS platform",
+        "Improved customer retention by 50%",
+        "Collaborated with cross-functional development teams",
+        "Developed internal knowledge documentation"
+      ],
+      "tools": []
+    }
+  ],
+  "projects": []
+}
