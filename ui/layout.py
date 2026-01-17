@@ -22,6 +22,9 @@ def render_app():
             st.error("Please paste the Job Description (JD).")
             return
 
+        with st.spinner("Saving JD..."):
+            c.save_jd_to_dir(jd_text)
+
         with st.spinner("Parsing resume on server..."):
             resume_json = parse_resume_api(resume_file)
 

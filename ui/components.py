@@ -1,4 +1,6 @@
 import streamlit as st
+from datetime import datetime
+from pathlib import Path
 
 def header():
     st.title("🧠 Interview Docket Generator")
@@ -35,6 +37,22 @@ def show_resume_json(resume_json):
     st.subheader("📄 Parsed Resume (Server Output)")
     st.json(resume_json)
 
+def save_jd_to_dir(jd_text: str) -> str:
+    """
+    Save JD to data/jd/ with timestamp in filename.
+    Returns the file path.
+    """
+    jd_dir = Path("data/jd")
+    jd_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"jd_{timestamp}.txt"
+    filepath = jd_dir / filename
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(jd_text)
+    
+    return str(filepath)
 
 def show_questions(questions):
     st.subheader("🤖 Suggested Questions")
