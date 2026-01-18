@@ -33,15 +33,18 @@ class AgenticChunker:
         return f"chunk_{clean_skill}_{unique_suffix}"
     
 
-    def chunk_by_skills(self):
+    def chunk_by_skills(self, jd_text: str = None):
         resume=self.resume
 
-        try:
-            # try accessing JD from streamlit session
-            jd=load_jd()
-        except:
-            # fallback, read the saved text file
-            jd=load_jd_from_dir()
+        if jd_text:
+            jd = jd_text
+        else:
+            try:
+                # try accessing JD from streamlit session
+                jd=load_jd()
+            except:
+                # fallback, read the saved text file
+                jd=load_jd_from_dir()
         
         target_skills=JDSkillExtractor().extract_skills(jd)
         prompt=chunker_prompt(target_skills, resume)

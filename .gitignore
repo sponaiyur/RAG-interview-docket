@@ -5,5 +5,6 @@ __pycache__/
 */__init__.py
 
 .env
-
-orchestrator.py
+.DS_Store
+*.code-workspace
+data/

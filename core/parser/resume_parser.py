@@ -521,3 +521,26 @@ def parse_resume(resume_id: str):
         json.dump(resume.model_dump(), f, indent=2) #apparently dict() is outdated
 
     return out_path
+
+
+def parse_resume_to_dict(pdf_path: Path) -> dict:
+    """
+    Parse a resume from a file path and return the dictionary directly.
+    Does NOT write to disk.
+    """
+    lines = extract_text_from_pdf(pdf_path)
+    sections = split_by_sections(lines)
+
+    resume = Resume(
+        resume_id=pdf_path.stem,
+        metadata=Metadata(
+            parsed_at=datetime.utcnow().isoformat(),
+            parser_version=PARSER_VERSION
+        ),
+        education=[],  # explicitly ignored
+        skills=parse_skills(sections.get("skills", [])),
+        experience=parse_experience(sections.get("experience", [])),
+        projects=parse_projects_ai_soln(sections.get("projects", []))
+    )
+    
+    return resume.model_dump()
