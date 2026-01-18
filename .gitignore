@@ -5,3 +5,6 @@ __pycache__/
 */__init__.py
 
 .env
+.DS_Store
+*.code-workspace
+data/

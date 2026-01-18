@@ -3,39 +3,77 @@ from datetime import datetime
 from pathlib import Path
 
 def header():
-    st.title("🧠 Interview Docket Generator")
-    st.caption("AI-assisted. Human-controlled. No automation.")
+    st.markdown("""
+        <style>
+        .main {
+            padding-top: 2rem;
+        }
+        .stButton button {
+            width: 100%;
+            background-color: #FF4B4B;
+            color: white;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+        }
+        .question-card {
+            background-color: white;
+            color: #31333F; /* Enforce dark text for white card */
+            padding: 0.8rem;
+            margin-top: 0.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .claim-box {
+            background-color: #f0f2f6;
+            color: #31333F; /* Enforce dark text for grey box */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #FF4B4B;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.write("🧠") # Placeholder for logo
+    with col2:
+        st.title("Interview Docket")
+        st.markdown("*AI-Assisted. Human-Controlled. Precision Engineering.*")
+    st.divider()
 
 
 def upload_resume():
-    st.subheader("Upload Resume")
-    return st.file_uploader("Upload Resume (PDF/DOCX)", type=["pdf", "docx"])
+    st.markdown("### 📄 Candidate Resume")
+    return st.file_uploader("Upload PDF/DOCX", type=["pdf", "docx"], label_visibility="collapsed")
 
 
 def upload_jd():
-    st.subheader("Job Description (JD)")
+    st.markdown("### 📋 Job Description")
     return st.text_area(
-        "Paste Job Description",
-        placeholder="Paste the full JD here...",
-        height=200
+        "Job Description",
+        placeholder="Paste the full Job Description (JD) here...",
+        height=300,
+        label_visibility="collapsed"
     )
 
 
 def stage_selector():
-    st.subheader("Interview Stage")
     return st.selectbox(
-        "Select Stage",
-        ["Screening", "Technical", "System Design", "Final"]
+        "Interview Stage",
+        ["Screening Call", "Technical Round 1", "System Design", "Managerial/Final"],
+        index=1
     )
 
 
 def generate_button():
-    return st.button("🚀 Generate Questions")
+    return st.button("🚀 GENERATE INTERVIEW DOCKET")
 
 
 def show_resume_json(resume_json):
-    st.subheader("📄 Parsed Resume (Server Output)")
-    st.json(resume_json)
+    with st.expander("🔍 Debug: View Parsed Resume Data"):
+        st.json(resume_json)
 
 def save_jd_to_dir(jd_text: str) -> str:
     """
@@ -54,18 +92,53 @@ def save_jd_to_dir(jd_text: str) -> str:
     
     return str(filepath)
 
-def show_questions(questions):
-    st.subheader("🤖 Suggested Questions")
-    for idx, q in enumerate(questions):
+def show_questions(chunks_output):
+    """
+    Render questions from the nested structure with professional styling.
+    """
+    st.markdown("## 🤖 Generated Interview Docket")
+    
+    if not chunks_output:
+        st.info("No questions generated yet. Start the process above.")
+        return
+
+    for chunk in chunks_output:
+        skill = chunk.get("focus_skill", "General")
+        
+        # Use a styled container for each skill section
         with st.container():
-            st.markdown(f"**Claim:** {q.get('claim', '')}")
-            st.markdown(f"**Question:** {q.get('question', '')}")
-            st.caption(f"Why this question? → {q.get('reason', '')}")
-            st.divider()
+            st.markdown(f"### ⚡ {skill}")
+            
+            for result in chunk.get("results", []):
+                claim = result.get("claim", "")
+                claim_type = result.get("claim_type", "General")
+                
+                # Custom HTML for Claim Box
+                st.markdown(f"""
+                <div class="claim-box">
+                    <strong>Target Claim ({claim_type}):</strong><br>
+                    <em>"{claim}"</em>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Questions with visual hierarchy
+                for q in result.get("questions", []):
+                    level = q.get("level", "question").replace("_", " ").title()
+                    text = q.get("question", "")
+                    
+                    st.markdown(f"""
+                    <div class="question-card">
+                        <small style="color: #666; font-weight: bold; text-transform: uppercase;">{level}</small><br>
+                        {text}
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("---")
 
 
 def ethics_banner():
-    st.info(
-        "⚠️ Ethical Boundary: This tool does NOT evaluate candidates. "
-        "It only helps interviewers ask better questions faster."
+    st.markdown("---")
+    st.caption(
+        "⚠️ **Ethical Boundary**: This tool assists in question formulation but does not evaluate candidates. "
+        "The interviewer is responsible for the final assessment."
     )

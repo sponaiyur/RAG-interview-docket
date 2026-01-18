@@ -1,313 +1,109 @@
-# Project: Interview Docket Generator (Pre-Interview AI Copilot)
+# 🧠 RAG Interview Docket
 
-## Big Picture (for everyone)
+**RAG Interview Docket** is a local-first, AI-powered assistant for technical interviewers. It helps you ask better questions by analyzing a candidate's resume against the Job Description (JD) and generating targeted, intent-driven questions.
 
-> We are **not** building a hiring system.
-> We are **not** deciding pass/fail.
-> We are building a tool that helps interviewers ask *better questions faster*.
-
-Everything you build must answer this question:
-**“How does this save interviewer time without taking away human control?”**
+> **Privacy Focused**: resume parsing and question generation happen entirely on your machine.
 
 ---
 
-## 👤 Member 1 — Resume Parsing & Structuring
+## 🚀 Features
 
-### Handled By: Sharanya
----
-
-### Your responsibility
-
-You take a resume file and convert it into **clean, structured information** that the rest of the system can understand.
-
-Right now, resumes are:
-
-* Messy
-* Inconsistent
-* Written for humans
-
-Your job is to make them **machine-friendly**.
+-   **📄 Resume Parsing**: Automatically extracts experience, skills, and projects from PDF resumes.
+-   **🔍 Semantic Chunking**: Intelligently groups resume claims by skill (e.g., "Python", "System Design") using Cloud APIs.
+-   **🤖 Local Question Generation**: Generates 7+ types of interview questions (Clarification, Depth, Trade-offs) using a local LLM.
+-   **⚡ Real-Time Streaming**: Questions appear instantly as they are generated using parallel processing.
+-   **💡 Explainability**: Every question is linked to the specific resume claim it targets.
 
 ---
 
-### What you will work on
+## 🛠️ Architecture Overview
 
-1. **Resume ingestion**
+The system operates in a 3-stage pipeline:
 
-   * Accept PDF / DOCX resumes
-   * Extract raw text reliably
+1.  **Ingestion**: `Streamlit UI` -> `PDF Parser` -> `Structured JSON`
+2.  **Chunking**: `Structured JSON` + `JD` -> `Groq API` -> `Skill-based Chunks`
+3.  **Generation**: `Chunks` -> `Local LLM (Ollama)` -> `Interview Questions`
 
-2. **Section identification**
-   You must separate text into:
-
-   * Education
-   * Skills
-   * Projects
-   * Experience
-
-3. **Claim extraction**
-   From each section, extract:
-
-   * Action statements
-     (“Built X”, “Implemented Y”, “Optimized Z”)
-   * Tools mentioned
-     (“Flask”, “TensorFlow”, “Docker”)
-
-4. **Basic normalization**
-
-   * Remove extra whitespace
-   * Standardize bullet points
-   * Handle common resume formats
+For a deep dive into the code structure, see [ARCHITECTURE.md](architecture.md).
 
 ---
 
-### What you will NOT do
+## 📦 Installation
 
-* ❌ No machine learning
-* ❌ No embeddings
-* ❌ No RAG
-* ❌ No question generation
+### Prerequisites
+1.  **Python 3.10+**
+2.  **[Ollama](https://ollama.ai/)** installed and running.
+3.  **Groq API Key** (for high-speed chunking).
 
-If you’re thinking about LLMs, you’ve gone too far.
+### Setup
 
----
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/your-repo/RAG-interview-docket.git
+    cd RAG-interview-docket
+    ```
 
-### Output format (non-negotiable)
+2.  **Install Dependencies**:
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    ```
 
-You must output **JSON**, for example:
+3.  **Configure Environment**:
+    Create a `.env` file in the root directory:
+    ```env
+    GROQ_API_KEY=your_groq_api_key_here
+    ```
 
-```json
-{
-  "projects": [
-    {
-      "name": "Smart Parking System",
-      "claims": [
-        "Designed backend using Flask",
-        "Integrated Arduino sensors"
-      ],
-      "tools": ["Flask", "Arduino"]
-    }
-  ]
-}
-```
-
-Other interns should be able to use your output **without asking you questions**.
-
----
-
-### When you’re done
-
-You are done when:
-
-* The same resume always produces the same structured output
-* Another intern can plug your JSON into their code without modification
-* A resume with bad formatting does not crash your parser
+4.  **Pull the Local Model**:
+    ```bash
+    ollama pull qwen2.5:latest
+    ```
+    *(You can change the model in `core/question_engine/llm_utils.py` if needed)*
 
 ---
 
-## 👤 Member 2 — Resume Knowledge Base & Retrieval (RAG Core)
+## ▶️ Usage
 
-### Handled By: Shraddha
----
+1.  **Start the App**:
+    ```bash
+    streamlit run app.py
+    ```
 
-### Your responsibility
-
-You take structured resume data and make it **searchable by intent**, not keywords.
-
-Example:
-
-* Not “Flask”
-* But “backend projects”
-* Not “Python”
-* But “claims that require validation”
+2.  **Workflow**:
+    -   **Step 1**: Upload a Candidate's Resume (PDF).
+    -   **Step 2**: Paste the Job Description (JD) text.
+    -   **Step 3**: Select the Interview Stage (Screening, Technical, etc.).
+    -   **Step 4**: Click **Generate Questions**.
+    -   **Step 5**: Watch as questions stream in real-time!
 
 ---
 
-### What you will work on
+## 🧩 Project Structure
 
-1. **Chunking resume data**
-
-   * Convert resume JSON into meaningful chunks
-   * Each chunk should represent a *single idea or claim*
-
-2. **Embedding & storage**
-
-   * Convert chunks into vectors
-   * Store them locally (FAISS / Chroma)
-
-3. **Retrieval logic**
-   Support queries like:
-
-   * “Retrieve all project-related claims”
-   * “Retrieve claims mentioning system design”
-   * “Retrieve vague claims”
-
-4. **Explainability**
-   Every retrieved chunk must be traceable back to:
-
-   * Resume section
-   * Original text
-
----
-
-### What you will NOT do
-
-* ❌ No internet access
-* ❌ No question phrasing
-* ❌ No UI
-* ❌ No scoring candidates
-
-Your job ends at:
-**“Here is the relevant resume content.”**
-
----
-
-### Output contract
-
-A function like:
-
-```python
-retrieve(section="projects", intent="deep") -> list[str]
-```
-
-If Person 3 can’t use your output directly, your task is incomplete.
-
----
-
-### When you’re done
-
-You are done when:
-
-* Retrieval is consistent and fast
-* Queries return relevant resume content
-* Every retrieved item can be explained
-
----
-
-## 👤 Member 3 — Interview Question & Logic Engine
-
-### Handled By: Shrey
----
-
-### Your responsibility
-
-You decide **what questions should be asked**, and **why**.
-
-You are designing interview *logic*, not chat responses.
-
----
-
-### What you will work on
-
-1. **Question taxonomy**
-   Design categories:
-
-   * Claim validation
-   * Depth probing
-   * Trade-off analysis
-   * Red-flag clarification
-
-2. **Question templates**
-   Example:
-
-   * “You mentioned X — can you explain how Y works?”
-   * “What design decisions did you consider here?”
-
-3. **Depth escalation logic**
-
-   * Surface → Intermediate → Deep
-   * Based on resume signal quality
-
-4. **Mapping logic**
-
-   * Map resume claims → question types
-   * Ensure every question has a justification
-
----
-
-### What you will NOT do
-
-* ❌ No resume parsing
-* ❌ No embeddings
-* ❌ No UI
-* ❌ No hiring decisions
-
-You are **not** evaluating answers.
-
----
-
-### Output format
-
-Structured, explainable output:
-
-```json
-{
-  "claim": "Designed REST API",
-  "question": "How did you handle authentication?",
-  "reason": "Validates backend depth"
-}
+```bash
+RAG-interview-docket/
+├── app.py                  # Streamlit Entry Point
+├── architecture.md         # Detailed System Architecture
+├── core/
+│   ├── chunker/            # Semantic analysis logic
+│   ├── parser/             # PDF parsing logic
+│   ├── question_engine/    # Local LLM generation logic
+│   └── pipeline_client.py  # Orchestrator
+├── ui/                     # UI Components
+└── data/                   # Storage for parsed resumes
 ```
 
 ---
 
-### When you’re done
+## 🤝 Contributing
 
-You are done when:
-
-* Questions are clearly tied to resume claims
-* An interviewer understands *why* a question exists
-* Questions scale across domains (not just tech)
+1.  Fork the repo.
+2.  Create a feature branch.
+3.  Submit a Pull Request.
 
 ---
 
-## 👤 Member 4 — Interface & Human Control Layer
-
-### Handled By: Swayam
-
----
-
-### Your responsibility
-
-You ensure the interviewer:
-
-* Understands the AI’s suggestions
-* Can override them
-* Never feels replaced
-
----
-
-### What you will work on
-
-1. **Interview dashboard**
-
-   * Display resume sections
-   * Show generated questions
-   * Show explanation (“why this question”)
-
-
-2. **Transparency**
-
-   * Clearly show AI boundaries
-   * No hidden automation
-
----
-
-### What you will NOT do
-
-* ❌ No AI logic
-* ❌ No retrieval
-* ❌ No parsing
-
-Your focus is **trust and usability**.
-
----
-
-### When you’re done
-
-You are done when:
-
-* A non-technical interviewer can use the tool
-* AI suggestions are clearly distinguishable from human input
-* Nothing happens automatically without human action
-
----
+## 📄 License
+MIT License.
