@@ -1,0 +1,12 @@
+Job Title: Senior Software Engineer
+Responsibilities:
+- Build and maintain backend services using Python and FastAPI.
+- Design and implement RESTful APIs.
+- Collaborate with frontend engineers to integrate user-facing elements.
+- Optimize application for maximum speed and scalability.
+- Implement security and data protection.
+Requirements:
+- 5+ years of experience in Python development.
+- Strong knowledge of FastAPI or Flask.
+- Experience with cloud platforms (AWS/GCP).
+- Familiarity with Docker and Kubernetes.

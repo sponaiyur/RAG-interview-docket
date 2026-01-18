@@ -7,4 +7,7 @@ __pycache__/
 .env
 .DS_Store
 *.code-workspace
-data/
+data/jd/jd_*.txt
+data/resumes/parsed/.Rhistory
+data/stored_chunks.json
+
