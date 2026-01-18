@@ -312,25 +312,96 @@ def parse_experience(lines):
 
     return experiences
 
+def coalesce_lines(lines):
+    """Merge continuation lines that appear to be wrapped text."""
+    merged = []
+    buffer = ""
+
+    for line in lines:
+        stripped = line.strip()
+
+        if not stripped:
+            continue
+
+        # bullet → flush buffer
+        if stripped.startswith(("•", "-", "–")):
+            if buffer:
+                merged.append(buffer.strip())
+                buffer = ""
+            merged.append(stripped)
+            continue
+
+        # If buffer is empty, start a new one
+        if not buffer:
+            buffer = stripped
+            continue
+
+        # Check if this looks like a new section/line (starts with capital and buffer ends with period)
+        # or if the line looks like a project title (short, all caps indicator words, or is single short phrase)
+        '''is_new_line = (
+            (buffer.endswith(".") and stripped[0].isupper()) or
+            stripped.startswith("Tools") or
+            stripped.startswith("Tech") or
+            (len(stripped.split()) <= 8 and stripped[0].isupper() and 
+             not buffer.endswith(",") and not buffer.endswith("–"))
+        )'''
+        is_new_line = (
+            (buffer.endswith(".") and stripped[0].isupper()) or
+            stripped.startswith(("Tools", "Tech", "Stack"))
+        )
+
+        if is_new_line:
+            merged.append(buffer.strip())
+            buffer = stripped
+        else:
+            # continuation - append to buffer
+            buffer += " " + stripped
+
+    if buffer:
+        merged.append(buffer.strip())
+
+    return merged
 
 
-# ---------------- PROJECTS ----------------
+def parse_projects_ai_soln(lines):
+    lines = coalesce_lines(lines)
 
-def parse_projects(lines):
     projects = []
     current = None
     claims = []
+    incomplete_claim = None  # Track incomplete claims (those not ending with period)
 
     for line in lines:
-        line = re.sub(r"^[•\u2022\u25cf\u25aa\u25e6\-]+", "", line).strip()
+        lower = line.lower()
 
-        # dont pars projects if we hit non-project sections
-        if line.strip().lower() in ["achievements", "profile links", "experiences", "skills","education"]:
+        # stop condition
+        if lower in ["achievements", "experience", "skills", "education"]:
             break
-        
-        # "Project Name | Tools" 
+
+        # bullet → claim
+        if line.startswith(("•", "-", "–")):
+            if current:
+                claim = line.lstrip("•–- ").strip()
+                if incomplete_claim:
+                    incomplete_claim += " " + claim
+                    if incomplete_claim.endswith("."):
+                        claims.append(incomplete_claim)
+                        incomplete_claim = None
+                else:
+                    if claim.endswith("."):
+                        claims.append(claim)
+                    else:
+                        incomplete_claim = claim
+            continue
+
+        # Handle pipe-separated format: "Project | Tools"
         if "|" in line and not line.startswith("-"):
-            # save previous project
+            # Flush incomplete claim
+            if incomplete_claim:
+                claims.append(incomplete_claim)
+                incomplete_claim = None
+            
+            # Save previous project
             if current:
                 projects.append(
                     Project(
@@ -339,38 +410,77 @@ def parse_projects(lines):
                         tools=current["tools"]
                     )
                 )
-
-            claims = []
-
+            
+            # Parse pipe-separated line
             parts = [p.strip() for p in line.split("|")]
             name = parts[0]
             tools = [t.strip() for t in parts[1].split(",")] if len(parts) > 1 else []
-
-            current = {
-                "name": name,
-                "tools": tools
-            }
+            
+            current = {"name": name, "tools": tools}
+            claims = []
             continue
 
-        # Detect TOOLS on a seperate line
-        if (
-            current
-            and not current["tools"]      # tools not already set
-            and (
-                line.lower().startswith("tools")
-                or "," in line
-            )
-        ):
-            tools_line = line.split(":", 1)[-1]
-            current["tools"] = [t.strip() for t in tools_line.split(",")]
+        # tech stack / tools
+        if lower.startswith(("tech stack", "tools:", "stack:")):
+            # Flush incomplete claim
+            if incomplete_claim:
+                claims.append(incomplete_claim)
+                incomplete_claim = None
+            
+            if current:
+                tools_line = line.split(":", 1)[-1]
+                current["tools"] = [t.strip() for t in tools_line.split(",")]
             continue
 
-        # Claims (only if a project exists)
+        # project title detection (for non-pipe format): looks like project title if:
+        # - doesn't end with period (likely not a claim)
+        # - not too long (not a full description)
+        # - either we have no current project OR we have accumulated claims
+        is_project_title = (
+            not line.endswith(".")
+            and len(line.split()) <= 12
+            and not line.startswith("•")
+            and not lower.startswith(("aims", "developed", "implemented", "includes", "tested", "currently", "involved", "over", "focused", "data", "system"))
+        )
+
+        if is_project_title and (current is None or claims):
+            # Flush incomplete claim
+            if incomplete_claim:
+                claims.append(incomplete_claim)
+                incomplete_claim = None
+            
+            # Save previous project
+            if current:
+                projects.append(
+                    Project(
+                        name=current["name"],
+                        claims=claims,
+                        tools=current["tools"]
+                    )
+                )
+            current = {"name": line, "tools": []}
+            claims = []
+            continue
+
+        # claim (add if project exists)
         if current:
-            line = line.lstrip("•\u2022- ").strip()
-            claims.append(line)
+            if incomplete_claim:
+                # Append to incomplete claim
+                incomplete_claim += " " + line
+                if incomplete_claim.endswith("."):
+                    claims.append(incomplete_claim)
+                    incomplete_claim = None
+            else:
+                # Start new claim or buffer if not ending with period
+                if line.endswith("."):
+                    claims.append(line)
+                else:
+                    incomplete_claim = line
 
-    #Save last project
+    # flush last incomplete claim and project
+    if incomplete_claim:
+        claims.append(incomplete_claim)
+    
     if current:
         projects.append(
             Project(
@@ -384,7 +494,6 @@ def parse_projects(lines):
 
 
 
-
 # ---------------- MAIN ----------------
 
 def parse_resume(resume_id: str):
@@ -393,6 +502,7 @@ def parse_resume(resume_id: str):
 
     lines = extract_text_from_pdf(pdf_path)
     sections = split_by_sections(lines)
+    print("SECTIONS FOUND:", sections.keys())
 
     resume = Resume(
         resume_id=resume_id,
@@ -403,12 +513,12 @@ def parse_resume(resume_id: str):
         education=[],                     # explicitly ignored
         skills=parse_skills(sections.get("skills", [])),
         experience=parse_experience(sections.get("experience", [])),
-        projects=parse_projects(sections.get("projects", []))
+        projects=parse_projects_ai_soln(sections.get("projects", [])) # used AI's solution, modify to use old one if we stick to only one format 
     )
 
     PARSED_DIR.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w") as f:
-        json.dump(resume.dict(), f, indent=2)
+        json.dump(resume.model_dump(), f, indent=2) #apparently dict() is outdated
 
     return out_path
 
