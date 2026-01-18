@@ -540,7 +540,7 @@ def parse_resume_to_dict(pdf_path: Path) -> dict:
         education=[],  # explicitly ignored
         skills=parse_skills(sections.get("skills", [])),
         experience=parse_experience(sections.get("experience", [])),
-        projects=parse_projects(sections.get("projects", []))
+        projects=parse_projects_ai_soln(sections.get("projects", []))
     )
     
-    return resume.dict()
+    return resume.model_dump()
