@@ -5,6 +5,9 @@ from pathlib import Path
 from core.chunker.chunker import AgenticChunker
 from core.question_engine.generator import generate_questions_from_chunks
 from core.parser.resume_parser import parse_resume_to_dict
+from core.audit.scorer import Scorer
+from core.audit.auditor import Auditor
+from core.chunker.skill_extractor import JDSkillExtractor
 
 BACKEND_URL = "http://localhost:8000"
 
@@ -58,3 +61,32 @@ def generate_questions_local(resume_json, jd_text, interview_stage):
     except Exception as e:
         print(f"Error in local question generation: {e}")
         return None
+
+def run_audit_pipeline(chunks, jd_text):
+    """
+    Runs the Grounded Auditor pipeline.
+    """
+    try:
+        print("Starting Auditor Pipeline...")
+        # Extract skills for Taxonomy mapping
+        extractor = JDSkillExtractor()
+        jd_skills = extractor.extract_skills(jd_text)
+        
+        # Scoring
+        scorer = Scorer(chunks, jd_skills)
+        scores = scorer.compute_scores()
+        
+        # LLM Audit
+        auditor = Auditor(scores)
+        closure_report = auditor.generate_closure()
+        
+        # Return structured data
+        return {
+            "scores": scores,
+            "report": closure_report
+        }
+        
+    except Exception as e:
+        print(f"Audit pipeline failed: {e}")
+        return None
+

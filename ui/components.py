@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 from pathlib import Path
+import plotly.graph_objects as go
 
 def header():
     st.markdown("""
@@ -142,3 +143,45 @@ def ethics_banner():
         "⚠️ **Ethical Boundary**: This tool assists in question formulation but does not evaluate candidates. "
         "The interviewer is responsible for the final assessment."
     )
+
+def render_radar_chart(skill_scores):
+    """
+    Renders the Compatibility Radar Chart using Plotly.
+    :param skill_scores: Dict { 'Backend': 0.8, 'Frontend': 0.5 ... }
+    """
+    if not skill_scores:
+        st.info("No data for Radar Chart.")
+        return
+
+    categories = list(skill_scores.keys())
+    values = list(skill_scores.values())
+    
+    # Close the loop for the radar chart
+    if categories:
+        categories.append(categories[0])
+        values.append(values[0])
+
+    fig = go.Figure(data=go.Scatterpolar(
+      r=values,
+      theta=categories,
+      fill='toself',
+      name='Candidate Alignment',
+      line_color='#FF4B4B'
+    ))
+
+    fig.update_layout(
+      polar=dict(
+        radialaxis=dict(
+          visible=True,
+          range=[0, 1]
+        )),
+      showlegend=False,
+      margin=dict(l=40, r=40, t=40, b=40)
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+def render_audit_report(report_text):
+    """Renders the textual audit report with styling."""
+    st.markdown("### 📋 Grounded Audit Report")
+    st.info(report_text)
