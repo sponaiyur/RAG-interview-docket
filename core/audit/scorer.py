@@ -1,4 +1,10 @@
 import re
+import json
+from core.audit.schema import Buckets
+from config import settings
+from config.utils import load_jd
+from config.prompts import jd_bucketing
+from groq import Groq
 
 class Scorer:
     """
@@ -8,30 +14,18 @@ class Scorer:
     3. Grouped Competency (Max Polling)
     """
     
-    # Static Taxonomy Fallback (Can be enhanced with LLM later)
-    # Static Taxonomy Fallback (Can be enhanced with LLM later)
-    TAXONOMY = {
-        "Languages": ["python", "java", "c++", "c#", "javascript", "typescript", "go", "ruby", "php", "rust", "swift", "kotlin", "scala"],
-        "Backend": ["django", "flask", "fastapi", "spring", "nodejs", "express", "rails", "graphql", "rest", "grpc"],
-        "Frontend": ["react", "vue", "angular", "html", "css", "tailwind", "bootstrap", "redux", "jquery", "nextjs"],
-        "Fullstack": ["mern", "mean", "jamstack"],
-        "Cloud/DevOps": ["aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins", "circleci", "github actions", "linux", "bash", "nginx"],
-        "Data Engineering": ["sql", "postgres", "mysql", "mongodb", "redis", "cassandra", "elasticsearch", "spark", "kafka", "hadoop", "airflow", "snowflake", "bigquery"],
-        "AI/ML": ["pytorch", "tensorflow", "keras", "scikit-learn", "pandas", "numpy", "transformers", "huggingface", "llm", "rag", "opencv", "nltk", "spacy"],
-        "Mobile": ["react native", "flutter", "ios", "android", "swift", "kotlin"],
-        "Testing/QA": ["selenium", "pytest", "junit", "mocha", "jest", "cypress", "playwright"],
-        "System Design": ["microservices", "distributed systems", "system design", "scalability", "load balancing", "caching", "database design"],
-        "General": [] 
-    }
 
-    def __init__(self, chunks, jd_skills):
+    def __init__(self, chunks, jd_skills, jd_text):
         """
         :param chunks: List of chunk objects from AgenticChunker
         :param jd_skills: List of skills extracted from JD
         """
         self.chunks = chunks
+        self.jd=load_jd(jd_text)
+        self.client = Groq(api_key=settings.API_KEY)
         self.jd_skills = [s.lower() for s in jd_skills]
         self.skill_map = self._map_chunks_to_skills()
+        self._get_bucket(None)  # Initialize bucket schema from JD skills
 
     def _map_chunks_to_skills(self):
         """Maps skill names to their chunks for easy access."""
@@ -42,12 +36,34 @@ class Scorer:
                  mapping[skill] = chunk
         return mapping
 
-    def _get_bucket(self, skill):
-        """Finds the bucket a skill belongs to."""
-        for category, skills in self.TAXONOMY.items():
-            if any(s in skill for s in skills): # Substring match for robustness
-                return category
-        return "General"
+    def _get_bucket(self, skill=None):
+        """Initialize buckets from JD skills via LLM (skill param unused, kept for API compat)."""
+        prompt = jd_bucketing(self.jd, self.jd_skills) 
+        
+        response = self.client.chat.completions.create(
+            model=settings.CHUNKER_MODEL,
+            messages=[
+                {"role": "system", "content": prompt},
+            ],
+            temperature=0,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "resume_analysis",
+                    "strict": True,
+                    "schema": Buckets.model_json_schema()
+                }
+            }
+        )
+        
+        # Parse the raw JSON string
+        raw_content = json.loads(response.choices[0].message.content)
+        
+        # Validate it against your Pydantic model to ensure priority is CORE/PREFERRED
+        validated_data = Buckets.model_validate(raw_content)
+        
+        # Assign the list of bucket items to self.bucket_schema
+        self.bucket_schema = validated_data.buckets
 
     def calculate_atomic_score(self, skill_name):
         """
@@ -55,50 +71,85 @@ class Scorer:
         Formula: min(1.0, (claim_count * 0.3) + (0.2 if implementation_evidence))
         """
         chunk = self.skill_map.get(skill_name)
-        if not chunk:
-            return 0.0
+        if not chunk or not chunk.get('claims'):
+            return 0.0, []
         
         claims = chunk.get('claims', [])
+        sources=[]
         claim_count = len(claims)
-        if claim_count == 0:
-            return 0.0
 
-        # Check for strong evidence keywords
-        has_implementation = any(
-            re.search(r'\b(built|implemented|deployed|architected|designed)\b', c.get('claim_text', '').lower()) 
-            for c in claims
-        )
-        
-        base_score = claim_count * 0.3
-        bonus = 0.2 if has_implementation else 0.0
-        
-        return min(1.0, base_score + bonus)
+        # Priority Logic: Professional Experience > Projects > Skills
+        weight = 0.0
+        for c in claims:
+            text = c.get('claim_text', '').lower()
+            section = c.get('source_section', '').lower()
+            
+            # Identify the "Pedigree" of the claim
+            if "experience" in section or "intern" in section:
+                weight += 0.5  # Heavy weight for professional work
+                sources.append(f"Work Experience at {section.split(':')[-1].strip()}")
+            elif "project" in section:
+                weight += 0.3  # Moderate weight for projects
+                sources.append(f"Project: {text[:30]}...")
+            else:
+                weight += 0.1  # Low weight for simple skill mentions
 
+        # Implementation Bonus
+        has_impl = any(re.search(r'\b(built|implemented|deployed|architected|designed)\b', 
+                                 c.get('claim_text', '').lower()) for c in claims)
+        
+        final_atomic = min(1.0, weight + (0.2 if has_impl else 0.0))
+        return final_atomic, list(set(sources)) # Return score and source context
+    
     def compute_scores(self):
         """
         Step 2: Aggregation (Max Pooling per Bucket).
         Returns:
-            - radar_data: Dict[Category, Score]
-            - detailed_scores: Diet[Skill, Score]
+            - radar_data: Dict[Category, Score] - Candidate's actual scores
+            - jd_expectations: Dict[Category, Score] - JD baseline expectations
+            - evidence_context: Dict[Category, Sources] - Evidence traces
         """
         detailed_scores = {}
-        bucket_scores = {k: 0.0 for k in self.TAXONOMY.keys()}
-        bucket_scores["General"] = 0.0 # Ensure exists
+        radar_data = {}
+        jd_expectations = {}
+        evidence_context = {}
+        core_scores = []
+        pref_scores = []
 
-        # Calculate atomic scores for all JD skills
-        for skill in self.jd_skills:
-            score = self.calculate_atomic_score(skill)
-            detailed_scores[skill] = score
+        for bucket in self.bucket_schema:
+            # We iterate through the LLM-defined buckets directly.
+            best_score = 0.0
+            best_sources=[]
+
+            for skill in bucket['skills']:
+                score, sources = self.calculate_atomic_score(skill)
+                detailed_scores[skill] = score
+                if score > best_score:
+                    best_score = score
+                    best_sources = sources
             
-            # Max Pooling Logic
-            bucket = self._get_bucket(skill)
-            if score > bucket_scores.get(bucket, 0.0):
-                bucket_scores[bucket] = score
+            radar_data[bucket['name']] = best_score
+            # JD expectation: CORE = 1.0 (must-have), PREFERRED = 0.7 (nice-to-have)
+            jd_expectations[bucket['name']] = 1.0 if bucket['priority'] == "CORE" else 0.7
+            evidence_context[bucket['name']] = best_sources
+            
+            # Separate scores for weighted final calculation.
+            if bucket['priority'] == "CORE":
+                core_scores.append(best_score)
+            else:
+                pref_scores.append(best_score)
+
+        avg_core = sum(core_scores) / len(core_scores) if core_scores else 0.0
+        avg_pref = sum(pref_scores) / len(pref_scores) if pref_scores else 0.0
         
-        # Filter out empty buckets for the Radar Chart to look clean
-        final_buckets = {k: v for k, v in bucket_scores.items() if v > 0 or k in ["Languages", "Backend"]} 
-        
+        # Ethical weighting: 80% Core / 20% Preferred.
+        final_score = (avg_core * 0.8) + (avg_pref * 0.2)
+
         return {
-            "radar_data": final_buckets,
-            "detailed_scores": detailed_scores
+            "final_score": round(final_score, 2),
+            "radar_data": radar_data,
+            "jd_expectations": jd_expectations,
+            "evidence_context": evidence_context,
+            # "detailed_scores": detailed_scores, - comment this for now
+            "core_alignment": avg_core
         }
