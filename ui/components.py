@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 from pathlib import Path
+import plotly.graph_objects as go
 
 def header():
     st.markdown("""
@@ -59,12 +60,12 @@ def upload_jd():
     )
 
 
-def stage_selector():
+'''def stage_selector():
     return st.selectbox(
         "Interview Stage",
         ["Screening Call", "Technical Round 1", "System Design", "Managerial/Final"],
         index=1
-    )
+    )'''
 
 
 def generate_button():
@@ -142,3 +143,83 @@ def ethics_banner():
         "⚠️ **Ethical Boundary**: This tool assists in question formulation but does not evaluate candidates. "
         "The interviewer is responsible for the final assessment."
     )
+
+def render_radar_chart(candidate_scores, jd_expectations):
+    """
+    Renders the Compatibility Radar Chart with dual traces: Candidate vs JD Expectations.
+    Highlights critical gaps (> 0.3).
+    
+    :param candidate_scores: Dict { 'Backend': 0.8, 'Frontend': 0.5 ... }
+    :param jd_expectations: Dict { 'Backend': 1.0, 'Frontend': 0.7 ... }
+    """
+    if not candidate_scores or not jd_expectations:
+        st.info("No data for Radar Chart.")
+        return
+
+    categories = list(candidate_scores.keys())
+    candidate_values = [candidate_scores[cat] for cat in categories]
+    expectation_values = [jd_expectations[cat] for cat in categories]
+    
+    # Calculate gaps
+    gaps = [expectation_values[i] - candidate_values[i] for i in range(len(categories))]
+    critical_gaps = [(cat, gap) for cat, gap in zip(categories, gaps) if gap >= 0.3]
+    
+    # Close the loop for the radar chart
+    if categories:
+        categories_loop = categories + [categories[0]]
+        candidate_values_loop = candidate_values + [candidate_values[0]]
+        expectation_values_loop = expectation_values + [expectation_values[0]]
+    
+    fig = go.Figure()
+    
+    # Trace 1: Candidate Scores (blue, solid)
+    fig.add_trace(go.Scatterpolar(
+        r=candidate_values_loop,
+        theta=categories_loop,
+        fill='toself',
+        name='Candidate Score',
+        line_color='rgba(0, 123, 255, 1)',
+        fillcolor='rgba(0, 123, 255, 0.3)',
+        hovertemplate='<b>%{theta}</b><br>Candidate: %{r:.2f}<extra></extra>'
+    ))
+    
+    # Trace 2: JD Expectations (red, dashed)
+    fig.add_trace(go.Scatterpolar(
+        r=expectation_values_loop,
+        theta=categories_loop,
+        fill='toself',
+        name='JD Requirement',
+        line=dict(color='rgba(255, 0, 0, 0.7)', dash='dash'),
+        fillcolor='rgba(255, 0, 0, 0.1)',
+        hovertemplate='<b>%{theta}</b><br>JD Requirement: %{r:.2f}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1]
+            )
+        ),
+        showlegend=True,
+        legend=dict(x=1.1, y=1),
+        margin=dict(l=60, r=120, t=60, b=40),
+        hovermode='closest'
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Show critical gaps summary
+    if critical_gaps:
+        st.warning(f"⚠️ **Critical Gaps ({len(critical_gaps)}/{len(categories)})**: Candidate below JD requirement by >0.3")
+        for cat, gap in critical_gaps:
+            st.markdown(f"  - **{cat}**: {gap:.2f} gap (Candidate: {candidate_scores[cat]:.2f} vs JD: {jd_expectations[cat]:.2f})")
+    else:
+        st.success(f"✅ **No Critical Gaps**: All skills within acceptable range (<0.3 gap)")
+
+
+
+def render_audit_report(report_text):
+    """Renders the textual audit report with styling."""
+    st.markdown("### 📋 Grounded Audit Report")
+    st.info(report_text)

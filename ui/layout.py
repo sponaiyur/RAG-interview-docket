@@ -1,11 +1,10 @@
 import streamlit as st
 from ui import components as c
-from core.pipeline_client import parse_resume_api, generate_questions_local
+from core.pipeline_client import parse_resume_api, generate_questions_local, run_audit_pipeline
 
 
 def render_app():
-    st.set_page_config(page_title="Interview Docket", page_icon="🧠", layout="wide")
-    
+    # Sidebar for Inputs
     # Sidebar for Inputs
     with st.sidebar:
         st.title("🧠 Interview Docket")
@@ -14,7 +13,7 @@ def render_app():
         
         resume_file = c.upload_resume()
         jd_text = c.upload_jd()
-        interview_stage = c.stage_selector()
+        # interview_stage = c.stage_selector()
         
         st.divider()
         generate_btn = c.generate_button()
@@ -24,20 +23,40 @@ def render_app():
 
     # Main Area
     if generate_btn:
-        start_generation(resume_file, jd_text, interview_stage)
+        #start_generation(resume_file, jd_text, interview_stage)
+        start_generation(resume_file, jd_text)
 
     # Persistent Display Logic
     # We use Tabs for better organization
     if st.session_state.resume_json or st.session_state.questions:
-        tab1, tab2 = st.tabs(["🚀 Interview Questions", "📊 Source Analysis"])
+        tab1, tab2, tab3 = st.tabs(["🚀 Interview Questions", "🛡️ Grounded Auditor", "📊 Source Analysis"])
         
         with tab1:
             if st.session_state.questions:
                 c.show_questions(st.session_state.questions)
             else:
                 st.info("Questions will appear here shortly...")
-        
+
         with tab2:
+            if "audit_data" in st.session_state and st.session_state.audit_data:
+                 scores = st.session_state.audit_data.get("scores", {})
+                 report = st.session_state.audit_data.get("report", "")
+                 
+                 radar_data = scores.get("radar_data", {})
+                 jd_expectations = scores.get("jd_expectations", {})
+                 
+                 col1, col2 = st.columns([1, 1])
+                 with col1:
+                     st.markdown("### Compatibility Radar")
+                     c.render_radar_chart(radar_data, jd_expectations)
+                 with col2:
+                     c.render_audit_report(report)
+                 
+                 c.ethics_banner()
+            else:
+                 st.info("Audit is running or not available yet.")
+        
+        with tab3:
             if st.session_state.resume_json:
                 c.show_resume_json(st.session_state.resume_json)
 
@@ -52,7 +71,7 @@ def render_app():
         3. Click **Generate**.
         """)
 
-def start_generation(resume_file, jd_text, interview_stage):
+def start_generation(resume_file, jd_text):
     if not resume_file:
         st.sidebar.error("Please upload a resume file.")
         return
@@ -83,7 +102,7 @@ def start_generation(resume_file, jd_text, interview_stage):
     questions_placeholder = st.empty()
     results_map = {}
     
-    questions_generator = generate_questions_local(resume_json, jd_text, interview_stage)
+    questions_generator = generate_questions_local(resume_json, jd_text)
     
     if questions_generator:
         with questions_placeholder.container():
@@ -108,6 +127,31 @@ def start_generation(resume_file, jd_text, interview_stage):
             # Render Preview
             with questions_placeholder.container():
                  c.show_questions(st.session_state.questions)
+
+        # Phase 3: Grounded Audit (After generation loop)
+        with st.status("Phase 3: Running Grounded Audit...", expanded=True) as status:
+            # Reconstruct chunks list from map
+            chunks_list = []
+            for chunk_id, data in results_map.items():
+                # We need to reconstruct the original chunk format somewhat
+                # Scorer expects: [{'focus_skill': '...', 'claims': [...]}]
+                # Our results_map has: {'focus_skill': '...', 'results': [{'claim': '...', ...}]}
+                # Mapping 'results' back to 'claims' for Scorer compatibility
+                chunk_claims = []
+                for res in data['results']:
+                    chunk_claims.append({'claim_text': res['claim']})
+                chunks_list.append({
+                    'focus_skill': data['focus_skill'],
+                    'claims': chunk_claims
+                })
+
+            audit_data = run_audit_pipeline(chunks_list, jd_text)
+            
+            if audit_data:
+                 st.session_state.audit_data = audit_data
+                 status.update(label="Audit Complete!", state="complete", expanded=False)
+            else:
+                 status.update(label="Audit Failed", state="error")
 
         progress_exec.progress(100, text="Generation Complete!")
         questions_placeholder.empty() # Clear placeholder
