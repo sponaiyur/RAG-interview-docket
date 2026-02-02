@@ -11,4 +11,6 @@ __pycache__/
 data/jd/jd_*.txt
 data/resumes/parsed/.Rhistory
 data/stored_chunks.json
+data/resumes/
+data/extracted_jd.txt
 

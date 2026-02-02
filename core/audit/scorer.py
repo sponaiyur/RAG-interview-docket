@@ -121,20 +121,20 @@ class Scorer:
             best_score = 0.0
             best_sources=[]
 
-            for skill in bucket['skills']:
+            for skill in bucket.skills:
                 score, sources = self.calculate_atomic_score(skill)
                 detailed_scores[skill] = score
                 if score > best_score:
                     best_score = score
                     best_sources = sources
             
-            radar_data[bucket['name']] = best_score
-            # JD expectation: CORE = 1.0 (must-have), PREFERRED = 0.7 (nice-to-have)
-            jd_expectations[bucket['name']] = 1.0 if bucket['priority'] == "CORE" else 0.7
-            evidence_context[bucket['name']] = best_sources
+            radar_data[bucket.name] = best_score
+            # JD expectation: From LLM analysis of actual JD language
+            jd_expectations[bucket.name] = bucket.expected_score
+            evidence_context[bucket.name] = best_sources
             
             # Separate scores for weighted final calculation.
-            if bucket['priority'] == "CORE":
+            if bucket.priority == "CORE":
                 core_scores.append(best_score)
             else:
                 pref_scores.append(best_score)
@@ -150,6 +150,7 @@ class Scorer:
             "radar_data": radar_data,
             "jd_expectations": jd_expectations,
             "evidence_context": evidence_context,
-            # "detailed_scores": detailed_scores, - comment this for now
+            "bucket_schema": self.bucket_schema,  # Pass bucket definitions for detailed explanations
+            "detailed_scores": detailed_scores,  # Pass all skill scores
             "core_alignment": avg_core
         }

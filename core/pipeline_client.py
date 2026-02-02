@@ -1,6 +1,7 @@
 import requests
 import tempfile
 import os
+import sys
 from pathlib import Path
 from core.chunker.chunker import AgenticChunker
 from core.question_engine.generator import generate_questions_from_chunks
@@ -9,7 +10,8 @@ from core.audit.scorer import Scorer
 from core.audit.auditor import Auditor
 from core.chunker.skill_extractor import JDSkillExtractor
 
-BACKEND_URL = "http://localhost:8000"
+if sys.platform=="win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
 
 def parse_resume_api(resume_file):
     """
@@ -34,12 +36,13 @@ def parse_resume_api(resume_file):
         return None
 
 
-def generate_questions_local(resume_json, jd_text, interview_stage):
+def generate_questions_local(resume_json, jd_text):
     """
     Local implementation of question generation pipeline.
     1. Chunk resume based on JD skills (AgenticChunker)
     2. Generate questions for each chunk (QuestionGenerator)
     """
+    
     try:
         print("Starting local question generation...")
         # 1. Chunking
@@ -62,6 +65,7 @@ def generate_questions_local(resume_json, jd_text, interview_stage):
         print(f"Error in local question generation: {e}")
         return None
 
+
 def run_audit_pipeline(chunks, jd_text):
     """
     Runs the Grounded Auditor pipeline.
@@ -73,7 +77,7 @@ def run_audit_pipeline(chunks, jd_text):
         jd_skills = extractor.extract_skills(jd_text)
         
         # Scoring
-        scorer = Scorer(chunks, jd_skills)
+        scorer = Scorer(chunks, jd_skills, jd_text)
         scores = scorer.compute_scores()
         
         # LLM Audit
@@ -89,4 +93,3 @@ def run_audit_pipeline(chunks, jd_text):
     except Exception as e:
         print(f"Audit pipeline failed: {e}")
         return None
-

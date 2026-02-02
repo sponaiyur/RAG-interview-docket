@@ -13,7 +13,7 @@ def render_app():
         
         resume_file = c.upload_resume()
         jd_text = c.upload_jd()
-        interview_stage = c.stage_selector()
+        # interview_stage = c.stage_selector()
         
         st.divider()
         generate_btn = c.generate_button()
@@ -23,7 +23,8 @@ def render_app():
 
     # Main Area
     if generate_btn:
-        start_generation(resume_file, jd_text, interview_stage)
+        #start_generation(resume_file, jd_text, interview_stage)
+        start_generation(resume_file, jd_text)
 
     # Persistent Display Logic
     # We use Tabs for better organization
@@ -42,11 +43,12 @@ def render_app():
                  report = st.session_state.audit_data.get("report", "")
                  
                  radar_data = scores.get("radar_data", {})
+                 jd_expectations = scores.get("jd_expectations", {})
                  
                  col1, col2 = st.columns([1, 1])
                  with col1:
                      st.markdown("### Compatibility Radar")
-                     c.render_radar_chart(radar_data)
+                     c.render_radar_chart(radar_data, jd_expectations)
                  with col2:
                      c.render_audit_report(report)
                  
@@ -69,7 +71,7 @@ def render_app():
         3. Click **Generate**.
         """)
 
-def start_generation(resume_file, jd_text, interview_stage):
+def start_generation(resume_file, jd_text):
     if not resume_file:
         st.sidebar.error("Please upload a resume file.")
         return
@@ -100,7 +102,7 @@ def start_generation(resume_file, jd_text, interview_stage):
     questions_placeholder = st.empty()
     results_map = {}
     
-    questions_generator = generate_questions_local(resume_json, jd_text, interview_stage)
+    questions_generator = generate_questions_local(resume_json, jd_text)
     
     if questions_generator:
         with questions_placeholder.container():
