@@ -29,11 +29,24 @@ class Auditor:
             return f"Moderate proficiency expected (~{int(expected_score*100)}%)"
     
     def _format_score_context(self):
-        """Converts scores to a readable context for the LLM, including bucket details and expectations."""
+        """Converts scores to a readable context for the LLM, including bucket details, expectations, and sources."""
         lines = []
         
         # Build a bucket lookup for skill details
         bucket_lookup = {b.name: b for b in self.bucket_schema}
+        
+        # Calculate overall candidate alignment
+        overall_candidate_score = sum(self.radar_data.values()) / len(self.radar_data) if self.radar_data else 0.0
+        overall_jd_expectation = sum(self.jd_expectations.values()) / len(self.jd_expectations) if self.jd_expectations else 0.0
+        
+        # Add overall summary
+        lines.append("=== OVERALL CANDIDATE ALIGNMENT ===")
+        lines.append(f"Candidate Overall Score: {int(overall_candidate_score*100)}%")
+        lines.append(f"JD Overall Expectation: {int(overall_jd_expectation*100)}%")
+        lines.append(f"Overall Gap: {(overall_jd_expectation - overall_candidate_score):.2f}")
+        lines.append("")
+        lines.append("=== BUCKET-BY-BUCKET ANALYSIS ===")
+        lines.append("")
         
         for bucket_name, candidate_score in self.radar_data.items():
             expected_score = self.jd_expectations.get(bucket_name, 1.0)
@@ -54,8 +67,6 @@ class Auditor:
                     if skill in self.detailed_scores and self.detailed_scores[skill] > 0:
                         skills_with_evidence.append(skill)
             
-            source_str = f" (Evidence: {', '.join(skills_with_evidence)}))" if skills_with_evidence else " (No concrete evidence found)"
-            
             # Include gap information
             gap = expected_score - candidate_score
             if gap > 0:
@@ -66,9 +77,14 @@ class Auditor:
             # Show all skills for context, but explain the expectation
             skill_list = f"\n   JD requires: {', '.join(bucket_obj.skills)}" if bucket_obj else ""
             
+            # Format sources as evidence references
+            sources_str = ""
+            if sources:
+                sources_str = f"\n   Sources: {'; '.join(sources)}"
+            
             lines.append(f"- {bucket_name}: {status} (Candidate: {int(candidate_score*100)}% vs JD: {int(expected_score*100)}%){gap_indicator}")
             lines.append(f"   Expectation: {expectation_language}")
-            lines.append(f"   Evidence: {', '.join(skills_with_evidence) if skills_with_evidence else 'No concrete evidence found'}{skill_list}")
+            lines.append(f"   Evidence: {', '.join(skills_with_evidence) if skills_with_evidence else 'No concrete evidence found'}{skill_list}{sources_str}")
             lines.append("")
         
         return "\n".join(lines)
